@@ -324,7 +324,6 @@ async def api_blogs(*, page='1'):
 	blogs = await Blog.findAll(orderBy='created_at desc', limit=(p.offset, p.limit))
 	return dict(page=p, blogs=blogs)
 
-
 @post('/api/blogs/{id}/delete')
 async def api_delete_blog(request, *, id):
 	check_admin(request)

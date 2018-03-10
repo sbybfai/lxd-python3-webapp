@@ -4,6 +4,21 @@
 
 {% block beforehead %}
 
+
+<script src="/static/js/editormd.js"></script>
+<link rel="stylesheet" href="/static/css/editormd.min.css" />
+
+
+<script type="text/javascript">
+    $(function() {
+            editor = editormd("content", {
+            syncScrolling : "single",
+            height : 640,
+            path : "/static/lib/" // Autoload modules mode, codemirror, marked... dependents libs path
+        });
+    });
+</script>
+
 <script>
 
 var
@@ -11,13 +26,15 @@ var
     action = '{{ action }}';
 
 function initVM(blog) {
-    var vm = new Vue({
+        var vm = new Vue({
         el: '#vm',
         data: blog,
         methods: {
             submit: function (event) {
                 event.preventDefault();
                 var $form = $('#vm').find('form');
+                //从editor获取文本内容
+                this.$data["content"] = editor.getMarkdown()
                 $form.postJSON(action, this.$data, function (err, r) {
                     if (err) {
                         $form.showFormError(err);
@@ -54,6 +71,7 @@ $(function () {
 
 </script>
 
+
 {% endblock %}
 
 {% block content %}
@@ -75,16 +93,16 @@ $(function () {
         <span><i class="uk-icon-spinner uk-icon-medium uk-icon-spin"></i> 正在加载...</span>
     </div>
 
-    <div id="vm" class="uk-width-2-3">
-        <form v-on="submit: submit" class="uk-form uk-form-stacked">
+    <div id="vm" class="uk-width-3-3">
+        <form v-on="submit: submit " class="uk-form uk-form-stacked">
             <div class="uk-alert uk-alert-danger uk-hidden"></div>
-            <div class="uk-form-row">
+            <div class="uk-form-row uk-width-2-3">
                 <label class="uk-form-label">标题:</label>
                 <div class="uk-form-controls">
                     <input v-model="name" name="name" type="text" placeholder="标题" class="uk-width-1-1">
                 </div>
             </div>
-            <div class="uk-form-row">
+            <div class="uk-form-row uk-width-2-3">
                 <label class="uk-form-label">摘要:</label>
                 <div class="uk-form-controls">
                     <textarea v-model="summary" rows="4" name="summary" placeholder="摘要" class="uk-width-1-1" style="resize:none;"></textarea>
@@ -92,10 +110,11 @@ $(function () {
             </div>
             <div class="uk-form-row">
                 <label class="uk-form-label">内容:</label>
-                <div class="uk-form-controls">
-                    <textarea v-model="content" rows="16" name="content" placeholder="内容" class="uk-width-1-1" style="resize:none;"></textarea>
+                <div class="uk-form-controls" id="content">
+                    <textarea v-model="content" rows="16" class="editormd-markdown-textarea" name="content-markdown-doc" placeholder="内容" class="uk-width-1-1" style="resize:none;"></textarea>
                 </div>
             </div>
+
             <div class="uk-form-row">
                 <button type="submit" class="uk-button uk-button-primary"><i class="uk-icon-save"></i> 保存</button>
                 <a href="/manage/blogs" class="uk-button"><i class="uk-icon-times"></i> 取消</a>
