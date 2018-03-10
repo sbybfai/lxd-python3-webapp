@@ -174,7 +174,8 @@ def manage_create_blog():
 
 
 @get('/manage/blogs/edit')
-def manage_edit_blog(*, id):
+def manage_edit_blog(request, id):
+	check_admin(request)
 	return {
 		'__template__': 'manage_blog_edit.html',
 		'id': id,
@@ -290,7 +291,7 @@ async def get_blog(id, request):
 	return {
 		'__template__': 'blog.html',
 		'blog': blog,
-		'comments': comments
+		'comments': comments,
 	}
 
 

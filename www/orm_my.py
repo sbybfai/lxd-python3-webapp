@@ -14,22 +14,28 @@ import aiomysql
 logging.basicConfig(level=logging.INFO)
 
 
-async def create_pool(loop, **kw):
+async def InitDB(app):
 	logging.info('create database connection pool...')
 	global __pool
+	config = app["db_config"]
 	__pool = await aiomysql.create_pool(
-		host=kw.get('host', DB_ADDR),
-		port=kw.get('port', DB_PORT),
-		user=kw['user'],
-		password=kw['password'],
-		db=kw['db'],
-		charset=kw.get('charset', 'utf8'),
-		autocommit=kw.get('autocommit', True),
-		maxsize=kw.get('maxsize', 10),
-		minsize=kw.get('minsize', 1),
-		loop=loop
+		host=config.get('host', DB_ADDR),
+		port=config.get('port', DB_PORT),
+		user=config['user'],
+		password=config['password'],
+		db=config['db'],
+		charset=config.get('charset', 'utf8'),
+		autocommit=config.get('autocommit', True),
+		maxsize=config.get('maxsize', 10),
+		minsize=config.get('minsize', 1),
+		loop=app.loop
 	)
+	app["db"] = __pool
 
+async def CloseDB(app):
+	logging.info('close database connection...')
+	app["db"].close()
+	await app["db"].wait_closed()
 
 async def select(sql, args, size=None):
 	logging.info("sql:%s, args:%s" % (sql, size))
