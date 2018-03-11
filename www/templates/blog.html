@@ -33,7 +33,12 @@ $(function () {
 
         <article class="uk-article">
             <h2>{{ blog.name }}</h2>
-            <p class="uk-article-meta">发表于&nbsp;{{ blog.created_at|datetime }}</p>
+            <p class="uk-article-meta">
+                <i>分类：{{ blog.category|category|safe}}</i>&nbsp;
+                <i>标签：{{ blog.tags|tag|safe}}</i>
+                &nbsp;&nbsp;&nbsp;&nbsp;发表于&nbsp;{{ blog.created_at|datetime }}
+                &nbsp;&nbsp;&nbsp;&nbsp;更新于&nbsp;{{ blog.update_time|datetime }}
+            </p>
             {% if __user__ %}
                 {% if __user__.admin %}
                     <button onclick="location='/manage/blogs/edit?id={{blog.id}}'" class="uk-button uk-button-primary uk-float-right">编辑</button>

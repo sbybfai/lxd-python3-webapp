@@ -38,7 +38,7 @@ async def CloseDB(app):
 	await app["db"].wait_closed()
 
 async def select(sql, args, size=None):
-	logging.info("sql:%s, args:%s" % (sql, size))
+	logging.info("sql:%s, args:%s" % (sql, args))
 	global __pool
 	with (await __pool) as conn:
 		cur = await conn.cursor(aiomysql.DictCursor)

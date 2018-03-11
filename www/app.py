@@ -16,7 +16,8 @@ from urllib import parse
 
 import orm_my
 import logging
-import asyncio, os, json, time
+import asyncio, os, json
+import handlers
 
 logging.basicConfig(level=logging.INFO)
 
@@ -125,16 +126,29 @@ def datetime_filter(t):
 	dt = datetime.fromtimestamp(t)
 	return u'%s-%s-%s %s:%s:%s' % (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
 
+def tags_filter(category):
+	tag_link = '<a href="/blog/tag/%s">%s</a>'
+	tag_list = category.split(":")
+	return ", ".join([tag_link % (sText, sText) for sText in tag_list])
+
+def category_filter(category):
+	category_link = '<a href="/blog/category/%s">%s</a>'
+	category_list = category.split(":")
+	return "/".join([category_link % (sText, sText) for sText in category_list])
+
+dJinjaFilters = {"datetime": datetime_filter, "tag": tags_filter, "category": category_filter}
+
 
 async def init(loop):
 	app = web.Application(loop=loop, middlewares=[
 		logger_factory, auth_factory, response_factory, data_factory
 	])
-	init_jinja2(app, filters=dict(datetime=datetime_filter))
+	init_jinja2(app, filters=dJinjaFilters)
 	add_routes(app, 'handlers')
 	add_static(app)
 	app["db_config"] = configs.db
 	app.on_startup.append(orm_my.InitDB)
+	app.on_startup.append(handlers.InitCache)
 	app.on_cleanup.append(orm_my.CloseDB)
 	srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
 	await app.startup()
