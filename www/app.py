@@ -7,7 +7,7 @@
 
 from datetime import datetime
 
-from aiohttp import web
+from aiohttp import web,web_app
 from jinja2 import Environment, FileSystemLoader
 from coroweb import add_routes, add_static
 from config import configs
@@ -150,9 +150,10 @@ async def init(loop):
 	app.on_startup.append(orm_my.InitDB)
 	app.on_startup.append(handlers.InitCache)
 	app.on_cleanup.append(orm_my.CloseDB)
-	srv = await loop.create_server(app.make_handler(), '127.0.0.1', 9000)
+	srv = await loop.create_server(app.make_handler(), '', 9000)
 	await app.startup()
-	logging.info('server started at http://127.0.0.1:9000...')
+	loop.create_task(handlers.ClearClickCache())
+	logging.info('server started at port:9000...')
 	return srv
 
 

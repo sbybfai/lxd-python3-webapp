@@ -31,6 +31,7 @@ create table blogs (
     `content` mediumtext not null,
     `created_at` real not null,
     `update_time` real not null,
+    `click_cnt` int(4) not null,
     key `idx_created_at` (`created_at`),
     primary key (`id`)
 ) engine=innodb default charset=utf8;

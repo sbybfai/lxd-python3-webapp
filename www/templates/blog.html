@@ -38,6 +38,8 @@ $(function () {
                 <i>标签：{{ blog.tags|tag|safe}}</i>
                 &nbsp;&nbsp;&nbsp;&nbsp;发表于&nbsp;{{ blog.created_at|datetime }}
                 &nbsp;&nbsp;&nbsp;&nbsp;更新于&nbsp;{{ blog.update_time|datetime }}
+                &nbsp;&nbsp;&nbsp;&nbsp;阅读：{{ blog.click_cnt}}
+
             </p>
             {% if __user__ %}
                 {% if __user__.admin %}

@@ -325,6 +325,17 @@ async def get_blog(id, request):
 	blog = await Blog.find(id)
 	if not blog:
 		raise APIPermissionError()
+	global g_ClickCache
+	global g_ClickTime
+	blog_id = blog.id
+	ip_address = request.remote
+	if not (blog_id, ip_address) in g_ClickTime:
+		g_ClickTime[(blog_id, ip_address)] = time.time()
+		if not blog_id in g_ClickCache:
+			g_ClickCache[blog_id] = blog.click_cnt
+		g_ClickCache[blog_id] += 1
+
+	blog.click_cnt = g_ClickCache.get(blog_id, blog.click_cnt)
 	comments = await Comment.findAll('blog_id=?', [id], orderBy='created_at desc')
 	for c in comments:
 		c.html_content = text2html(c.content)
@@ -382,9 +393,12 @@ async def api_delete_blog(request, *, id):
 if not hasattr(globals(), 'g_Tag2ID'):
 	global g_Tag2ID
 	global g_Category2ID
+	global g_ClickCache
+	global g_ClickTime
 	g_Tag2ID = {}	# {tag:[blog_id1, blog_id2]}
 	g_Category2ID = {}	# {category:[blog_id1, blog_id2]}
-
+	g_ClickCache = {} # {blog_id: iCnt}
+	g_ClickTime = {} # {(blog_id, ip): iTime}
 
 #分类和标签经常要用到，所以把他缓存起来
 #每次博客发生修改时，重新初始化一次
@@ -423,4 +437,23 @@ async def InitCache(app):
 	logging.info("InitCache Done %s %s" % (g_Tag2ID, g_Category2ID))
 
 
+#点击缓存每60s检查一次，并清理超过10min的ip点击缓存，并保存点击数
+async def ClearClickCache():
+	iNowtime = time.time()
+	global g_ClickCache
+	global g_ClickTime
+	for (blog_id, ip), iTime in g_ClickTime.items():
+		if iTime - iNowtime > 600:
+			del g_ClickTime[(blog_id, ip)]
 
+	lstID = g_ClickCache.keys()
+	if lstID:
+		blogs = await Blog.findAll('id in %s', [tuple(lstID)])
+		for blog in blogs:
+			blog.click_cnt = g_ClickCache[blog.id]
+			del g_ClickCache[blog_id]
+			await blog.update()
+
+	await asyncio.sleep(60)
+	loop = asyncio.get_event_loop()
+	loop.create_task(ClearClickCache())

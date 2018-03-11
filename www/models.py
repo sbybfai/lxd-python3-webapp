@@ -14,7 +14,7 @@ from orm_my import StringField
 from orm_my import BooleanField
 from orm_my import FloatField
 from orm_my import TextField
-
+from orm_my import IntegerField
 
 def next_id():
 	return '%015d%s000' % (int(time.time() * 1000), uuid.uuid4().hex)
@@ -35,7 +35,7 @@ class User(Model):
 class Blog(Model):
 	__table__ = 'blogs'
 
-	id = StringField(primary_key=True, default=0, ddl='varchar(50)')
+	id = IntegerField(primary_key=True, default=0)
 	user_id = StringField(ddl='varchar(50)')
 	user_name = StringField(ddl='varchar(50)')
 	user_image = StringField(ddl='varchar(500)')
@@ -46,6 +46,7 @@ class Blog(Model):
 	content = TextField()
 	created_at = FloatField(default=time.time)
 	update_time = FloatField(default=time.time)
+	click_cnt = IntegerField(default=0)
 
 
 class Comment(Model):
