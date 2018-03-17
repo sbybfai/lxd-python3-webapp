@@ -7,7 +7,7 @@
 
 from datetime import datetime
 
-from aiohttp import web,web_app
+from aiohttp import web
 from jinja2 import Environment, FileSystemLoader
 from coroweb import add_routes, add_static
 from config import configs
@@ -43,10 +43,12 @@ def init_jinja2(app, **kw):
 			env.filters[name] = f
 	app['__templating__'] = env
 
+
 @web.middleware
 async def logger_factory(request, handler):
 	logging.info('Request: %s %s' % (request.method, request.path))
 	return await handler(request)
+
 
 @web.middleware
 async def data_factory(request, handler):
@@ -66,6 +68,7 @@ async def data_factory(request, handler):
 		logging.info('GET request form: %s' % str(request.__data__))
 
 	return await handler(request)
+
 
 @web.middleware
 async def response_factory(request, handler):
@@ -92,6 +95,7 @@ async def response_factory(request, handler):
 			return resp
 		else:
 			r['__user__'] = request.__user__
+			r['category_list'] = handlers.g_CategoryList
 			app = request.app()
 			resp = web.Response(body=app['__templating__'].get_template(template).render(**r).encode('utf-8'))
 			resp.content_type = 'text/html;charset=utf-8'
@@ -106,6 +110,7 @@ async def response_factory(request, handler):
 	resp = web.Response(body=str(r).encode('utf-8'))
 	resp.content_type = 'text/plain;charset=utf-8'
 	return resp
+
 
 @web.middleware
 async def auth_factory(request, handler):
@@ -126,17 +131,36 @@ def datetime_filter(t):
 	dt = datetime.fromtimestamp(t)
 	return u'%s-%s-%s %s:%s:%s' % (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
 
+
 def tags_filter(category):
 	tag_link = '<a href="/blog/tag/%s">%s</a>'
 	tag_list = category.split(":")
 	return ", ".join([tag_link % (sText, sText) for sText in tag_list])
+
 
 def category_filter(category):
 	category_link = '<a href="/blog/category/%s">%s</a>'
 	category_list = category.split(":")
 	return "/".join([category_link % (sText, sText) for sText in category_list])
 
-dJinjaFilters = {"datetime": datetime_filter, "tag": tags_filter, "category": category_filter}
+
+def category_list_filter(category_list):
+	sHtml = "<ul>"
+	next_levels = [iLevel for (_, iLevel) in category_list[1:]] + [1]
+	for (category, iLevel), iNextLevel in zip(category_list, next_levels):
+		sLink = '<a href="/blog/category/%s" > %s </a>' % (category, category)
+		if iLevel == iNextLevel:
+			sHtml += "<li>%s</li>" % sLink
+		elif iLevel < iNextLevel:
+			sHtml += "<li>%s<ul>" % sLink
+		else:
+			sHtml += "<li>%s</li>" % sLink + "</ul></li>" * (iLevel - iNextLevel)
+	sHtml += "</ul>"
+	return sHtml
+
+
+dJinjaFilters = {"datetime": datetime_filter, "tag": tags_filter, "category": category_filter,
+				 "category_list": category_list_filter}
 
 
 async def init(loop):

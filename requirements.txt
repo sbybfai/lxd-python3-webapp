@@ -1,0 +1,5 @@
+aiomysql==0.0.12
+aiohttp==3.0.6
+Jinja2==2.9.6
+markdown2==2.3.5
+watchdog==0.8.3

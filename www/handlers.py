@@ -32,7 +32,7 @@ def user2cookie(user, max_age):
 
 def text2html(text):
 	lines = map(lambda s: '<p>%s</p>' % s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;'),
-	            filter(lambda s: s.strip() != '', text.split('\n')))
+				filter(lambda s: s.strip() != '', text.split('\n')))
 	return ''.join(lines)
 
 
@@ -93,6 +93,7 @@ async def index(*, page='1'):
 		'blogs': blogs
 	}
 
+
 @get('/blog/category/{category}')
 async def get_blog_by_category(*, category, page='1'):
 	blogs = []
@@ -100,7 +101,7 @@ async def get_blog_by_category(*, category, page='1'):
 		page_index = get_page_index(page)
 		lstID = g_Category2ID[category]
 		page = Page(len(lstID), page_index)
-		lstID = lstID[page.offset : page.limit]
+		lstID = lstID[page.offset: page.limit]
 		blogs = await Blog.findAll('id in %s', [tuple(lstID)], orderBy='created_at desc')
 	return {
 		'__template__': 'blogs.html',
@@ -108,21 +109,23 @@ async def get_blog_by_category(*, category, page='1'):
 		'blogs': blogs
 	}
 
+
 @get('/blog/tag/{tag}')
-async def get_blog_by_tag(*, tag, page = "1"):
+async def get_blog_by_tag(*, tag, page="1"):
 	blogs = []
 	print("=====", tag, g_Tag2ID)
 	if tag in g_Tag2ID:
 		page_index = get_page_index(page)
 		lstID = g_Tag2ID[tag]
 		page = Page(len(lstID), page_index)
-		lstID = lstID[page.offset : page.limit]
+		lstID = lstID[page.offset: page.limit]
 		blogs = await Blog.findAll('id in %s', [tuple(lstID)], orderBy='created_at desc')
 	return {
 		'__template__': 'blogs.html',
 		'page': page,
 		'blogs': blogs
 	}
+
 
 @get('/register')
 def register():
@@ -243,7 +246,7 @@ async def api_create_comment(id, request, *, content):
 	if blog is None:
 		raise APIResourceNotFoundError('Blog')
 	comment = Comment(blog_id=blog.id, user_id=user.id, user_name=user.name, user_image=user.image,
-	                  content=content.strip())
+					  content=content.strip())
 	await comment.save()
 	return comment
 
@@ -265,7 +268,7 @@ async def api_update_blog(id, request, *, name, category, tags, summary, content
 	blog.name = name.strip()
 	blog.summary = summary.strip()
 	blog.content = content.strip()
-	blog.category = category.strip()	#两端加:,方便索引
+	blog.category = category.strip()  # 两端加:,方便索引
 	blog.tags = tags.strip()
 	blog.update_time = time.time()
 	await blog.update()
@@ -301,7 +304,7 @@ async def api_register_user(*, email, name, passwd):
 	uid = next_id()
 	sha1_passwd = '%s:%s' % (uid, passwd)
 	user = User(id=uid, name=name.strip(), email=email, passwd=hashlib.sha1(sha1_passwd.encode('utf-8')).hexdigest(),
-	            image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
+				image='http://www.gravatar.com/avatar/%s?d=mm&s=120' % hashlib.md5(email.encode('utf-8')).hexdigest())
 	await user.save()
 	# make session cookie:
 	r = web.Response()
@@ -362,7 +365,7 @@ async def api_create_blog(request, *, name, category, tags, summary, content):
 	if not content or not content.strip():
 		raise APIValueError('content', 'content cannot be empty.')
 	blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image,
-	            name=name.strip(), category=category.strip(), tags=tags.strip(), summary=summary.strip(),
+				name=name.strip(), category=category.strip(), tags=tags.strip(), summary=summary.strip(),
 				content=content.strip())
 	await blog.save()
 	await InitCache(None)
@@ -380,7 +383,6 @@ async def api_blogs(*, page='1'):
 	return dict(page=p, blogs=blogs)
 
 
-
 @post('/api/blogs/{id}/delete')
 async def api_delete_blog(request, *, id):
 	check_admin(request)
@@ -395,20 +397,26 @@ if not hasattr(globals(), 'g_Tag2ID'):
 	global g_Category2ID
 	global g_ClickCache
 	global g_ClickTime
-	g_Tag2ID = {}	# {tag:[blog_id1, blog_id2]}
-	g_Category2ID = {}	# {category:[blog_id1, blog_id2]}
-	g_ClickCache = {} # {blog_id: iCnt}
-	g_ClickTime = {} # {(blog_id, ip): iTime}
+	global g_CategoryList
+	g_Tag2ID = {}  # {tag:[blog_id1, blog_id2]}
+	g_Category2ID = {}  # {category:[blog_id1, blog_id2]}
+	g_ClickCache = {}  # {blog_id: iCnt}
+	g_ClickTime = {}  # {(blog_id, ip): iTime}
+	g_CategoryList = []  # [category1, category2]
 
-#分类和标签经常要用到，所以把他缓存起来
-#每次博客发生修改时，重新初始化一次
-#因为修改频率低，博客数量不多的情况下，这种做法可以接受
+
+# 分类和标签经常要用到，所以把他缓存起来
+# 每次博客发生修改时，重新初始化一次
+# 因为修改频率低，博客数量不多的情况下，这种做法可以接受
 async def InitCache(app):
 	blogs = await Blog.findAll()
 	global tag_Tag2ID
 	global g_Category2ID
+	global g_CategoryList
 	tag_Tag2ID = {}
 	g_Category2ID = {}
+	g_CategoryList = []
+	lstTmpCategory = []
 	for blog in blogs:
 		sID = blog.id
 		sTag = blog.tags
@@ -428,16 +436,29 @@ async def InitCache(app):
 				g_Category2ID[category] = []
 			g_Category2ID[category].append(sID)
 
+		if not sCateGory in g_CategoryList:
+			lstCategory = sCateGory.split(":")
+			for i in range(len(lstCategory)):
+				category = ":".join(lstCategory[:i + 1])
+				if not category in lstTmpCategory:
+					lstTmpCategory.append(category)
+
 	for sTag in g_Tag2ID.keys():
-		g_Tag2ID[sTag].sort(reverse = True)
+		g_Tag2ID[sTag].sort(reverse=True)
 
 	for category in g_Category2ID.keys():
-		g_Category2ID[category].sort(reverse = True)
+		g_Category2ID[category].sort(reverse=True)
+
+	lstTmpCategory.sort()
+	for category in lstTmpCategory:
+		lstCategory = category.split(":")
+		sEnd = lstCategory[-1]
+		g_CategoryList.append((sEnd, len(lstCategory)))
 
 	logging.info("InitCache Done %s %s" % (g_Tag2ID, g_Category2ID))
 
 
-#点击缓存每60s检查一次，并清理超过10min的ip点击缓存，并保存点击数
+# 点击缓存每60s检查一次，并清理超过10min的ip点击缓存，并保存点击数
 async def ClearClickCache():
 	iNowtime = time.time()
 	global g_ClickCache
@@ -451,7 +472,7 @@ async def ClearClickCache():
 		blogs = await Blog.findAll('id in %s', [tuple(lstID)])
 		for blog in blogs:
 			blog.click_cnt = g_ClickCache[blog.id]
-			del g_ClickCache[blog_id]
+			del g_ClickCache[blog.id]
 			await blog.update()
 
 	await asyncio.sleep(60)
