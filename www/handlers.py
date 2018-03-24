@@ -8,7 +8,7 @@ import markdown2 as markdown2
 import re, time, hashlib, asyncio, traceback
 
 from coroweb import get, post
-from models import User, Comment, Blog, next_id
+from models import User, Comment, Blog, Draft, next_id
 from config import configs
 from apis import *
 from aiohttp import web
@@ -197,12 +197,21 @@ def manage_blogs(*, page='1'):
 	}
 
 
+@get('/manage/drafts')
+def manage_drafts(*, page='1'):
+	return {
+		'__template__': 'manage_drafts.html',
+		'page_index': get_page_index(page)
+	}
+
+
 @get('/manage/blogs/create')
 def manage_create_blog():
 	return {
 		'__template__': 'manage_blog_edit.html',
 		'id': '',
-		'action': '/api/blogs'
+		'action': '/api/create',
+		'draft': '/api/add_draft',
 	}
 
 
@@ -212,7 +221,19 @@ def manage_edit_blog(request, id):
 	return {
 		'__template__': 'manage_blog_edit.html',
 		'id': id,
-		'action': '/api/blogs/%s' % id
+		'action': '/api/blogs/%s' % id,
+	}
+
+
+@get('/manage/drafts/edit')
+def manage_edit_draft(request, id):
+	check_admin(request)
+	return {
+		'__template__': 'manage_blog_edit.html',
+		'id': '',
+		'action': '/api/create',
+		'draft': '/api/add_draft',
+		'draft_id': id,
 	}
 
 
@@ -354,9 +375,13 @@ async def get_blog(id, request):
 async def api_get_blog(*, id):
 	return await Blog.find(id)
 
+@get('/api/drafts/{id}')
+async def api_get_draft(*, id):
+	return await Draft.find(id)
 
-@post('/api/blogs')
-async def api_create_blog(request, *, name, category, tags, summary, content):
+
+@post('/api/create')
+async def api_create_blog(request, *, name, category, tags, summary, content, draft_id):
 	check_admin(request)
 	if not name or not name.strip():
 		raise APIValueError('name', 'name cannot be empty.')
@@ -364,12 +389,35 @@ async def api_create_blog(request, *, name, category, tags, summary, content):
 		raise APIValueError('summary', 'summary cannot be empty.')
 	if not content or not content.strip():
 		raise APIValueError('content', 'content cannot be empty.')
+	if draft_id:
+		blog = await Draft.find(draft_id)
+		await blog.remove()
 	blog = Blog(user_id=request.__user__.id, user_name=request.__user__.name, user_image=request.__user__.image,
 				name=name.strip(), category=category.strip(), tags=tags.strip(), summary=summary.strip(),
 				content=content.strip())
 	await blog.save()
 	await InitCache(None)
 	return blog
+
+
+@post('/api/add_draft')
+async def api_add_draft(request, *, name, category, tags, summary, content, draft_id):
+	check_admin(request)
+	if not name or not name.strip():
+		raise APIValueError('name', 'name cannot be empty.')
+	if not summary or not summary.strip():
+		raise APIValueError('summary', 'summary cannot be empty.')
+	if not content or not content.strip():
+		raise APIValueError('content', 'content cannot be empty.')
+	draft = Draft(user_id=request.__user__.id, user_name=request.__user__.name, name=name.strip(),
+				  category=category.strip(), tags=tags.strip(), summary=summary.strip(),
+				  content=content.strip())
+	if draft_id:
+		draft.id = int(draft_id)
+		await draft.update()
+	else:
+		await draft.save()
+	return draft
 
 
 @get('/api/blogs')
@@ -383,6 +431,17 @@ async def api_blogs(*, page='1'):
 	return dict(page=p, blogs=blogs)
 
 
+@get('/api/drafts')
+async def api_drafts(*, page='1'):
+	page_index = get_page_index(page)
+	num = await Draft.findNumber('count(id)')
+	p = Page(num, page_index)
+	if num == 0:
+		return dict(page=p, blogs=())
+	drafts = await Draft.findAll(orderBy='id desc', limit=(p.offset, p.limit))
+	return dict(page=p, blogs=drafts)
+
+
 @post('/api/blogs/{id}/delete')
 async def api_delete_blog(request, *, id):
 	check_admin(request)
@@ -391,8 +450,18 @@ async def api_delete_blog(request, *, id):
 	await InitCache(None)
 	return dict(id=id)
 
+
+@post('/api/drafts/{id}/delete')
+async def api_delete_draft(request, *, id):
+	check_admin(request)
+	blog = await Draft.find(id)
+	await blog.remove()
+	return dict(id=id)
+
+
 @post('/api/upload_img')
 async def api_upload_img(request):
+	check_admin(request)
 	dRlt = {}
 	try:
 		oFileField = request.__data__['editormd-image-file']

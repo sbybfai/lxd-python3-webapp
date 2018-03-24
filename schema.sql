@@ -36,6 +36,18 @@ create table blogs (
     primary key (`id`)
 ) engine=innodb default charset=utf8;
 
+create table draft (
+    `id` int(4) AUTO_INCREMENT not null,
+    `user_id` varchar(50) not null,
+    `user_name` varchar(50) not null,
+    `name` varchar(50) not null,
+    `tags` varchar(50) not null,
+    `category` varchar(50) not null,
+    `summary` varchar(200) not null,
+    `content` mediumtext not null,
+    primary key (`id`)
+) engine=innodb default charset=utf8;
+
 create table comments (
     `id` varchar(50) not null,
     `blog_id` varchar(50) not null,

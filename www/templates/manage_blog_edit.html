@@ -26,19 +26,28 @@
 
 var
     ID = '{{ id }}',
-    action = '{{ action }}';
+    action = '{{ action }}',
+    draft = '{{ draft }}',
+    draft_id = '{{ draft_id }}';
 
 function initVM(blog) {
         var vm = new Vue({
         el: '#vm',
         data: blog,
         methods: {
-            submit: function (event) {
+            submit: function (type, event) {
                 event.preventDefault();
                 var $form = $('#vm').find('form');
                 //从editor获取文本内容
-                this.$data["content"] = editor.getMarkdown()
-                $form.postJSON(action, this.$data, function (err, r) {
+                this.$data["content"] = editor.getMarkdown();
+                this.$data["draft_id"] = draft_id;
+                if (type == 1){
+                    func = action
+                }
+                else {
+                    func = draft
+                }
+                $form.postJSON(func, this.$data, function (err, r) {
                     if (err) {
                         $form.showFormError(err);
                     }
@@ -54,7 +63,7 @@ function initVM(blog) {
 
 $(function () {
     if (ID) {
-        getJSON('/api/blogs/' + ID, function (err, blog) {
+        getJSON('/api/blogs/'+ ID, function (err, blog) {
             if (err) {
                 return fatal(err);
             }
@@ -63,15 +72,27 @@ $(function () {
         });
     }
     else {
-        $('#loading').hide();
-        initVM({
-            name: '',
-            category: '',
-            tags: '',
-            summary: '',
-            content: '',
+        if (draft_id) {
+            getJSON('/api/drafts/' + draft_id, function (err, blog) {
+                if (err) {
+                    return fatal(err);
+                }
+                $('#loading').hide();
+                initVM(blog);
+            });
 
-        });
+        }
+        else {
+            $('#loading').hide();
+            initVM({
+                name: '',
+                category: '',
+                tags: '',
+                summary: '',
+                content: ''
+
+            });
+        }
     }
 });
 
@@ -87,6 +108,7 @@ $(function () {
             <ul class="uk-breadcrumb">
                 <li><a href="/manage/comments">评论</a></li>
                 <li><a href="/manage/blogs">日志</a></li>
+                <li><a href="/manage/drafts">草稿箱</a></li>
                 <li><a href="/manage/users">用户</a></li>
             </ul>
         </div>
@@ -100,7 +122,7 @@ $(function () {
     </div>
 
     <div id="vm" class="uk-width-3-3">
-        <form v-on="submit: submit " class="uk-form uk-form-stacked">
+        <form v-on="submit: submit(1, $event)" class="uk-form uk-form-stacked">
             <div class="uk-alert uk-alert-danger uk-hidden"></div>
             <div class="uk-form-row uk-width-2-3">
                 <label class="uk-form-label">标题:</label>
@@ -136,6 +158,11 @@ $(function () {
             <div class="uk-form-row">
                 <button type="submit" class="uk-button uk-button-primary"><i class="uk-icon-save"></i> 保存</button>
                 <a href="/manage/blogs" class="uk-button"><i class="uk-icon-times"></i> 取消</a>
+
+                {% if draft %}
+                    <button v-on="click: submit(2, $event)" class="uk-button uk-button-primary"><i class="uk-icon-save"></i> 保存草稿</button>
+                {% endif %}
+
             </div>
         </form>
     </div>

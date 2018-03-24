@@ -48,6 +48,18 @@ class Blog(Model):
 	update_time = FloatField(default=time.time)
 	click_cnt = IntegerField(default=0)
 
+class Draft(Blog):
+	__table__ = "draft"
+
+	id = IntegerField(primary_key=True, default=0)
+	user_id = StringField(ddl='varchar(50)')
+	user_name = StringField(ddl='varchar(50)')
+	name = StringField(ddl='varchar(50)')
+	category = StringField(ddl="varchar(50)")
+	tags = StringField(ddl="varchar(50)")
+	summary = StringField(ddl='varchar(200)')
+	content = TextField()
+
 
 class Comment(Model):
 	__table__ = 'comments'
