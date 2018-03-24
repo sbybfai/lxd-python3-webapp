@@ -57,7 +57,8 @@ async def data_factory(request, handler):
 		if request.content_type.startswith('application/json'):
 			request.__data__ = await request.json()
 			logging.info('POST request json: %s' % str(request.__data__))
-		elif request.content_type.startswith('application/x-www-form-urlencoded'):
+		elif request.content_type.startswith('application/x-www-form-urlencoded') or \
+				request.content_type.startswith('multipart/form-data'):
 			request.__data__ = await request.post()
 			logging.info('POST request form: %s' % str(request.__data__))
 	elif request.method == "GET":

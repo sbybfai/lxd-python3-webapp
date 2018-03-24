@@ -14,7 +14,10 @@
             editor = editormd("content", {
             syncScrolling : "single",
             height : 640,
-            path : "/static/lib/" // Autoload modules mode, codemirror, marked... dependents libs path
+            path : "/static/lib/", // Autoload modules mode, codemirror, marked... dependents libs path
+            imageUpload: true,
+            imageFormats: ["jpg", "jpeg", "gif", "png", "bmp", "webp"],
+            imageUploadURL: "/api/upload_img"
         });
     });
 </script>

@@ -5,14 +5,15 @@
 # @File    : handlers.py
 # @Software: PyCharm
 import markdown2 as markdown2
+import re, time, hashlib, asyncio, traceback
 
 from coroweb import get, post
 from models import User, Comment, Blog, next_id
 from config import configs
 from apis import *
 from aiohttp import web
+from PIL import Image
 
-import re, time, json, logging, hashlib, base64, asyncio
 
 COOKIE_NAME = 'awesession'
 _COOKIE_KEY = configs.session.secret
@@ -113,7 +114,6 @@ async def get_blog_by_category(*, category, page='1'):
 @get('/blog/tag/{tag}')
 async def get_blog_by_tag(*, tag, page="1"):
 	blogs = []
-	print("=====", tag, g_Tag2ID)
 	if tag in g_Tag2ID:
 		page_index = get_page_index(page)
 		lstID = g_Tag2ID[tag]
@@ -391,6 +391,34 @@ async def api_delete_blog(request, *, id):
 	await InitCache(None)
 	return dict(id=id)
 
+@post('/api/upload_img')
+async def api_upload_img(request):
+	dRlt = {}
+	try:
+		oFileField = request.__data__['editormd-image-file']
+		filename = int(time.time())
+		imf_file = Image.open(oFileField.file)
+		path = './static/img/%s.jpg' % filename
+		w, h = imf_file.size
+		if h > 600:
+			iNewH = 600
+			iNewW = int(iNewH * float(w / h))
+			imf_file = imf_file.resize((iNewW, iNewH))
+		imf_file.save(path)
+		dRlt = {
+			"success": 1,
+			"message": "上传成功",
+			"url": "/static/img/%s.jpg" % filename,
+		}
+	except Exception:
+		logging.exception(traceback.print_exc())
+		dRlt = {
+			"success": 0,
+			"message": "上传失败",
+			"url": "",
+		}
+	finally:
+		return dRlt
 
 if not hasattr(globals(), 'g_Tag2ID'):
 	global g_Tag2ID
